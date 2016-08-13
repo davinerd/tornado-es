@@ -26,11 +26,17 @@ class ESConnection(object):
         for param, value in kwargs.items():
             parameters[param] = value
 
-        path = "/%(index)s%(type)s/_%(method)s" % {
-            "method": method,
-            "index": index,
-            "type": doc_type
-        }
+        if method == "scroll":
+            path = "/%(index)s%(type)s" % {
+                "index": index,
+                "type": doc_type
+            }
+        else:
+            path = "/%(index)s%(type)s/_search" % {
+                "index": index,
+                "type": doc_type
+            }
+
         if parameters:
             path += '?' + urlencode(parameters)
 
@@ -38,7 +44,7 @@ class ESConnection(object):
 
     @return_future
     def search(self, callback, **kwargs):
-        path = self.create_path("search", **kwargs)
+        path = self.create_path(kwargs.get("type"), **kwargs)
         source = json_encode(kwargs.get('source', {
             "query": {
                 "match_all": {}
