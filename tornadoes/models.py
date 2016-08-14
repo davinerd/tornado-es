@@ -12,9 +12,11 @@ class BulkList(object):
         with self.lock:
             self.bulk_list = []
 
-    def add(self, index, source):
+    def add(self, index, source, stype):
         with self.lock:
             command = {"index": index} if index else {}
+            if stype:
+                command['type'] = stype
             source = "%s\n%s" % (json_encode(command), json_encode(source))
             self.bulk_list.append(source)
 

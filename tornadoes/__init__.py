@@ -46,8 +46,8 @@ class ESConnection(object):
         }))
         self.post_by_path(path, callback, source)
 
-    def multi_search(self, index, source):
-        self.bulk.add(index, source)
+    def multi_search(self, index, source, type=None):
+        self.bulk.add(index, source, type)
 
     @return_future
     def apply_search(self, callback, params={}):
