@@ -177,6 +177,18 @@ class TestESConnection(ESConnectionTestBase):
         self.assertTrue('df=_id' in response.request.url)
         self.assertTrue('test=True' in response.request.url)
 
+    def test_search_scroll(self):
+        source = {"query": {"match_all": {}}}
+        self.es_connection.search(index="teste", type="materia", source=source, scroll="1m", callback=self.stop)
+        response = self._verify_status_code_and_return_response()
+        self.assertTrue('_scroll_id' in response)
+        self.assertEqual(response['hits']['total'], 13)
+        self.assertEqual(len(response['hits']['hits']), 10)
+        source = {"scroll_id" : response['_scroll_id']}
+        self.es_connection.search(index="_search", type="scroll", scroll="1m", source=source, callback=self.stop)
+        response = self._verify_status_code_and_return_response()
+        self.assertEquals(len(response['hits']['hits']), 3)
+
 
 class TestESConnectionWithTornadoGen(ESConnectionTestBase):
 
