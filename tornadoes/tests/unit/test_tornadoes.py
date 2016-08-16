@@ -189,6 +189,28 @@ class TestESConnection(ESConnectionTestBase):
         response = self._verify_status_code_and_return_response()
         self.assertEquals(len(response['hits']['hits']), 3)
 
+    def test_clear_single_scroll(self):
+        source = {"query": {"match_all": {}}}
+        self.es_connection.search(index="teste", type="materia", source=source, scroll="1m", callback=self.stop)
+        response = self._verify_status_code_and_return_response()
+        self.assertTrue('_scroll_id' in response)
+        self.es_connection.clear_scroll(response['_scroll_id'], callback=self.stop)
+        self._verify_status_code_and_return_response()
+
+    def test_clear_multiple_scroll(self):
+        scroll_ids = list()
+        source = {"query": {"match_all": {}}}
+        self.es_connection.search(index="teste", type="materia", source=source, scroll="1m", callback=self.stop)
+        response = self._verify_status_code_and_return_response()
+        self.assertTrue('_scroll_id' in response)
+        scroll_ids.append(response['_scroll_id'])
+        self.es_connection.search(index="teste", type="galeria", source=source, scroll="1m", callback=self.stop)
+        response = self._verify_status_code_and_return_response()
+        self.assertTrue('_scroll_id' in response)
+        scroll_ids.append(response['_scroll_id'])
+        self.es_connection.clear_scroll(scroll_ids, callback=self.stop)
+        self._verify_status_code_and_return_response()
+
 
 class TestESConnectionWithTornadoGen(ESConnectionTestBase):
 
@@ -308,6 +330,43 @@ class TestESConnectionWithTornadoGen(ESConnectionTestBase):
         self.assertCount(response, 1)
         self.assertTrue('df=_id' in response.request.url)
         self.assertTrue('test=True' in response.request.url)
+
+    @gen_test
+    def test_search_scroll(self):
+        source = {"query": {"match_all": {}}}
+        response = yield self.es_connection.search(index="teste", type="materia", source=source, scroll="1m")
+        response = self._verify_status_code_and_return_response(response)
+        self.assertTrue('_scroll_id' in response)
+        self.assertEqual(response['hits']['total'], 13)
+        self.assertEqual(len(response['hits']['hits']), 10)
+        source = {"scroll_id" : response['_scroll_id']}
+        response = yield self.es_connection.search(index="_search", type="scroll", scroll="1m", source=source)
+        response = self._verify_status_code_and_return_response(response)
+        self.assertEquals(len(response['hits']['hits']), 3)
+
+    @gen_test
+    def test_clear_single_scroll(self):
+        source = {"query": {"match_all": {}}}
+        response = yield self.es_connection.search(index="teste", type="materia", source=source, scroll="1m")
+        response = self._verify_status_code_and_return_response(response)
+        self.assertTrue('_scroll_id' in response)
+        response = yield self.es_connection.clear_scroll(response['_scroll_id'])
+        self._verify_status_code_and_return_response(response)
+
+    @gen_test
+    def test_clear_multiple_scroll(self):
+        scroll_ids = list()
+        source = {"query": {"match_all": {}}}
+        response = yield self.es_connection.search(index="teste", type="materia", source=source, scroll="1m")
+        response = self._verify_status_code_and_return_response(response)
+        self.assertTrue('_scroll_id' in response)
+        scroll_ids.append(response['_scroll_id'])
+        response = yield self.es_connection.search(index="teste", type="galeria", source=source, scroll="1m")
+        response = self._verify_status_code_and_return_response(response)
+        self.assertTrue('_scroll_id' in response)
+        scroll_ids.append(response['_scroll_id'])
+        response = yield self.es_connection.clear_scroll(scroll_ids)
+        self._verify_status_code_and_return_response(response)
 
     def assertCount(self, response, count):
         response_dict = self._verify_status_code_and_return_response(response)

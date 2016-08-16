@@ -91,6 +91,21 @@ class ESConnection(object):
         self.request_document(index, type, uid, "DELETE", parameters=parameters, callback=callback)
 
     @return_future
+    def clear_scroll(self, scroll_id, callback=None):
+        path = '/_search/scroll'
+        url = '%(url)s%(path)s/%(scroll_id)s' % {
+            "url": self.url,
+            "path": path,
+            "scroll_id": ",".join(scroll_id) if isinstance(scroll_id, list) else scroll_id
+        }
+
+        request_arguments = dict(self.httprequest_kwargs)
+        request_arguments['method'] = "DELETE"
+
+        request = HTTPRequest(url, **request_arguments)
+        self.client.fetch(request, callback)
+
+    @return_future
     def count(self, index="_all", type=None, source='', parameters=None, callback=None):
         path = '/{}'.format(index)
 
